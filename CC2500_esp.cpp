@@ -24,7 +24,9 @@
  *    Created: 02-10-2008
  */
 
-#ifndef ESP8266
+#ifdef ESP8266
+
+#include <SPI.h>
 #include "CC2500.h"
 #include "Arduino.h"
 
@@ -43,6 +45,7 @@ CC2500::~CC2500()
 
 void CC2500::init()
 {
+    Serial.println("init esp cc2500");
     // setup pin mode
     pinMode(m_pinMOSI, OUTPUT);
     pinMode(m_pinMISO, INPUT);
@@ -52,6 +55,9 @@ void CC2500::init()
     // disable device
     digitalWrite(m_pinCS, HIGH);
 
+    SPI.begin();
+
+/*
     // setup SPI control register: SPCR = 01010000
     // interrupt disabled, spi enabled, msb 1st, master, clk low when idle,
     // sample on rising edge of clk, system clock rate fastest
@@ -60,6 +66,7 @@ void CC2500::init()
     // clear data registers
     byte clr = SPSR;
     clr = SPDR;
+    */
 }
 
 void CC2500::reset()
@@ -80,7 +87,7 @@ void CC2500::reset()
     };
 
     // send reset command (SRES)
-    spiTransfer(0x30);
+    SPI.transfer(0x30);
 
     // disable device
     digitalWrite(m_pinCS, HIGH);
@@ -96,7 +103,7 @@ unsigned char CC2500::sendByte(unsigned char data)
     };
 
     // send byte
-    unsigned char result = spiTransfer(data);
+    unsigned char result = SPI.transfer(data);
 
     // disable device
     digitalWrite(m_pinCS, HIGH);
@@ -115,10 +122,10 @@ unsigned char CC2500::sendCommand(unsigned char command, unsigned char data)
     };
 
     // send command byte
-    spiTransfer(command);
+    SPI.transfer(command);
 
     // send data byte
-    unsigned char result = spiTransfer(data);
+    unsigned char result = SPI.transfer(data);
 
     // disable device
     digitalWrite(m_pinCS, HIGH);
@@ -144,13 +151,13 @@ unsigned char CC2500::sendBurstCommand(unsigned char command, unsigned char* dat
     };
 
     // send command byte
-    spiTransfer(command);
+    SPI.transfer(command);
 
     unsigned char result = 0;
 
     // send data bytes
     for (int i=0; i<length; ++i) {
-        result = spiTransfer(data[i]);
+        result = SPI.transfer(data[i]);
         data[i] = result;
     }
 
@@ -159,19 +166,6 @@ unsigned char CC2500::sendBurstCommand(unsigned char command, unsigned char* dat
 
     // return result
     return result;
-}
-
-unsigned char CC2500::spiTransfer(volatile unsigned char data)
-{
-    // start transmission
-    SPDR = data;
-
-    // wait for end of transmission
-    while (!(SPSR & (1<<SPIF))) {
-    };
-
-    // return received byte
-    return SPDR;
 }
 
 #endif
